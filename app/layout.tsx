@@ -43,7 +43,9 @@ export default async function RootLayout({
         />
       </head>
       <SessionProvider session={session}>
-        <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`}>
+        <body
+          className={`${inter.variable} ${spaceGrotesk.variable} antialiased `}
+        >
           <Toaster position="top-right" />
           <ThemeProvider
             attribute="class"
