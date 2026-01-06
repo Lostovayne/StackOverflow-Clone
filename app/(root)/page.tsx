@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import QuestionCard from "@/components/cards/QuestionCard";
 import HomeFilter from "@/components/filters/HomeFilter";
 import LocalSearch from "@/components/search/LocalSearch";
@@ -61,12 +62,10 @@ interface SearchParams {
 }
 
 const HomePage = async ({ searchParams }: SearchParams) => {
-  // const dbConnection = await test();
-  // console.log("DB Connection:", dbConnection);
+  const session = await auth();
+  console.log("Session in home page:", session);
 
   const { query = "", filter = "" } = await searchParams;
-  // search Database for question
-  // TODO: Agregar filtrado por los botones de filtrado
   const filterQuestions = questions.filter((question) =>
     question.title.toLowerCase().includes(query?.toLowerCase())
   );
@@ -76,7 +75,7 @@ const HomePage = async ({ searchParams }: SearchParams) => {
       <section className="flex w-full flex-col-reverse sm:flex-row justify-between gap-4 sm:items-center">
         <h1 className="h1-bold text-dark100_light900">All Questions</h1>
 
-        <Button asChild className="primary-gradient min-h-[46px] px-4 py-3 !text-light-900">
+        <Button asChild className="primary-gradient min-h-11.5 px-4 py-3 text-light-900!">
           <Link href={ROUTES.ASK_QUESTION}>Ask Question</Link>
         </Button>
       </section>

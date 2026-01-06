@@ -1,3 +1,1 @@
-export { auth as middleware } from "@/auth";
-
-export default function proxy() {}
+export { auth as proxy } from "@/auth";
