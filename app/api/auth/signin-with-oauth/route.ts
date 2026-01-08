@@ -4,78 +4,73 @@ import handleError from "@/lib/handlers/error";
 import { ValidationError } from "@/lib/http-errors";
 import dbConnect from "@/lib/mongoose";
 import { SignInWithOAuthSchema } from "@/lib/validations";
-import { APIErrorResponse } from "@/types/global";
+import { APIErrorResponse, APIResponse } from "@/types/global";
 import mongoose from "mongoose";
+import { NextResponse } from "next/server";
 import slugify from "slugify";
 
-export async function POST(request: Request) {
-  const { provider, providerAccountId, user } = await request.json();
-
-  await dbConnect();
-  const session = await mongoose.startSession();
-  session.startTransaction();
+export async function POST(request: Request): Promise<APIResponse<{ userId: string }>> {
+  let session: mongoose.ClientSession | null = null;
 
   try {
-    const validateData = SignInWithOAuthSchema.safeParse({
+    await dbConnect();
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    const payload = await request.json();
+    const validateData = SignInWithOAuthSchema.safeParse(payload);
+    if (!validateData.success) throw new ValidationError(validateData.error.flatten().fieldErrors);
+
+    const {
       provider,
       providerAccountId,
-      user,
-    });
+      user: { name, username, email, image },
+    } = validateData.data;
 
-    if (!validateData.success)
-      throw new ValidationError(validateData.error.flatten().fieldErrors);
-
-    const { name, username, email, image } = user;
-
-    // User data verified with slugify
     const slugifiedUsername = slugify(username, {
       lower: true,
       strict: true,
       trim: true,
     });
 
-    let existingUser = await User.findOne({ email }).session(session);
+    let userDoc = await User.findOne({ email }).session(session);
+    const isNewUser = !userDoc;
 
-    if (!existingUser) {
-      [existingUser] = await User.create(
-        [{ name, username: slugifiedUsername, email, image }],
-        { session },
-      );
+    if (!userDoc) {
+      [userDoc] = await User.create([{ name, username: slugifiedUsername, email, image }], { session });
     } else {
       const updatedData: { name?: string; image?: string } = {};
-
-      // Update only if the fields are provided differently
-      if (existingUser.name !== name) updatedData.name = name;
-      if (existingUser.image !== image) updatedData.image = image;
+      if (userDoc.name !== name) updatedData.name = name;
+      if (userDoc.image !== image && image) updatedData.image = image;
 
       if (Object.keys(updatedData).length > 0) {
-        await User.updateOne(
-          { _id: existingUser._id },
-          { $set: updatedData },
-          { session },
-        );
+        await User.updateOne({ _id: userDoc._id }, { $set: updatedData }, { session });
       }
-
-      // Account existing, no need to create a new one
-      const existingAccount = await Account.findOne({
-        provider,
-        providerAccountId,
-        userId: existingUser._id,
-      }).session(session);
-
-      if (!existingAccount) {
-        await Account.create(
-          [{ userId: existingUser._id, name, provider, providerAccountId }],
-          { session },
-        );
-      }
-
-      await session.commitTransaction();
     }
+
+    const existingAccount = await Account.findOne({
+      provider,
+      providerAccountId,
+      userId: userDoc!._id,
+    }).session(session);
+
+    if (!existingAccount) {
+      await Account.create([{ userId: userDoc!._id, name, provider, providerAccountId }], { session });
+    }
+
+    await session.commitTransaction();
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: { userId: userDoc!._id.toString() },
+      },
+      { status: isNewUser ? 201 : 200 }
+    );
   } catch (error: unknown) {
-    await session.abortTransaction();
+    if (session) await session.abortTransaction();
     return handleError(error, "api") as APIErrorResponse;
   } finally {
-    await session.endSession();
+    if (session) await session.endSession();
   }
 }

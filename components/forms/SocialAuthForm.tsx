@@ -1,10 +1,11 @@
 "use client";
 
-import Image from "next/image";
-
 import { authenticate, Provider } from "@/app/actions/auth";
+import Image from "next/image";
+import { unstable_rethrow } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
+
 const SocialAuthForm = () => {
   const buttonClassName =
     "background-dark400_light900 body-medium text-dark200_light800 min-h-12 flex-1 rounded-2 px-4 py-3.5 ";
@@ -13,9 +14,10 @@ const SocialAuthForm = () => {
     try {
       await authenticate(provider);
     } catch (error) {
+      unstable_rethrow(error);
+
       toast.warning("Sign-in Failed", {
-        description:
-          error instanceof Error ? error.message : "An error occurred while signing in.",
+        description: error instanceof Error ? error.message : "An error occurred while signing in.",
         descriptionClassName: "text-sm text-dark400_light900",
         duration: 5000,
       });
