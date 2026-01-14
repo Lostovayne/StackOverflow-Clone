@@ -56,7 +56,7 @@ const TagCard = ({
 
   if (compact) {
     return isButton ? (
-      <button onClick={(e) => handleClick} className="flex justify-between gap-2">
+      <button onClick={() => handleClick} className="flex justify-between gap-2">
         {content}
       </button>
     ) : (

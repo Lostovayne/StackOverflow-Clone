@@ -51,22 +51,16 @@ const LocalSearch = ({ route, imgSrc, placeholder, otherClasses }: Props) => {
     }, 300);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [search, route, pathname, router]);
+  }, [search, route, pathname, router, searchParams]);
 
   return (
     <div
       className={cn(
         "background-light800_darkgradient flex min-h-14 grow items-center gap-4 rounded-[10px] px-4",
-        otherClasses,
+        otherClasses
       )}
     >
-      <Image
-        src={imgSrc}
-        width={24}
-        height={24}
-        alt={"search icon"}
-        className="cursor-pointer"
-      />
+      <Image src={imgSrc} width={24} height={24} alt={"search icon"} className="cursor-pointer" />
       <Input
         type="text"
         placeholder={placeholder}
